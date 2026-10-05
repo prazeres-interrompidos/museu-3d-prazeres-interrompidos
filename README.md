@@ -1,28 +1,30 @@
 # Museu Virtual dos Livros — Prazeres Interrompidos
 
-Protótipo navegável 3D em Three.js, preparado para publicação no GitHub Pages.
+Primeira versão reconstruída a partir da planta aprovada.
 
-## Correções desta versão
-- As setas têm a orientação física correta: **↑ avança, ↓ recua, ← vira/desloca para a esquerda, → vira/desloca para a direita**.
-- O joystick mantém **cima = avançar** e **baixo = recuar**.
-- A colisão usa um raio de segurança à volta do visitante e impede atravessar paredes.
-- As portas principais têm aberturas reais na geometria, em vez de serem apenas elementos visuais.
-- A câmara inicia virada para o edifício.
+## Estrutura
+- Entrada Principal
+- Sala 1 — Episódios 1–100
+- Sala 2 — Episódios 101–200
+- Sala 3 — Episódios 201–300
+- Sala 4 — Episódios 301–400
+- Sala 5 — Episódios 401–500
+- Sala 6 — Episódios 501–600
 
+## Princípios desta versão
+- 3D integral
+- sem corredores
+- sem portas
+- passagens abertas entre o átrio e as salas
+- mobiliário, plantas e iluminação já incluídos
+- 100 espaços de capas reservados por sala
+- colisão por caixas de segurança com movimento separado por eixos
+- apenas teclas de setas para navegação
+- ↑ avança e ↓ recua relativamente à direcção da câmara
 
-## Navegação
-- Computador: apenas as setas **← ↑ → ↓**.
-- Rato: arrastar para olhar em redor.
-- Telemóvel/tablet: joystick; **para cima = avançar** e **para baixo = recuar**.
-- A circulação é limitada por paredes e só é possível atravessar as portas.
-- As salas mantêm o seu nome fixo nas paredes.
-
-## Conteúdo
-- Entrada com fachada fotorealista baseada na imagem de referência do Museu.
-- Átrio aberto ao céu, com bancos, árvores, flores e a escultura espiralada de livros.
-- Galerias com iluminação quente, paredes, teto e painéis visuais.
-- As capas E001–E100 continuam na pasta `CAPAS`.
-- O áudio pode ser carregado a partir da pasta `EPISÓDIOS PARA O MUSEU` do repositório principal do projeto.
-
-## GitHub Pages
-O projeto não precisa de um servidor próprio: pode ser publicado diretamente pela branch `main` e pela pasta raiz `/ (root)`.
+## Próximos passos
+1. validar arquitectura e movimento;
+2. substituir os placeholders pelas capas reais;
+3. ligar cada capa ao respectivo áudio;
+4. acrescentar menu, música e navegação adicional;
+5. optimizar e publicar no GitHub Pages.

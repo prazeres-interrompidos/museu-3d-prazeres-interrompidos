@@ -1,63 +1,18 @@
 <!doctype html>
 <html lang="pt-PT">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Museu Virtual dos Livros — Prazeres Interrompidos</title>
-  <link rel="stylesheet" href="css/museu.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="loading"><div><h1>Museu Virtual dos Livros</h1><p>A preparar o museu…</p></div></div>
-
-  <div id="ui">
-    <header class="topbar">
-      <strong>MUSEU VIRTUAL DOS LIVROS</strong>
-      <span>Prazeres Interrompidos</span>
-    </header>
-
-    <div id="help" class="panel">
-      <button id="closeHelp" aria-label="Fechar">×</button>
-      <h2>Como visitar</h2>
-      <p><b>Computador:</b> Use apenas as teclas de direção ← ↑ → ↓ para caminhar. Arraste o rato para olhar.</p>
-      <p><b>Telemóvel:</b> use o joystick no canto inferior esquerdo para caminhar (para cima = avançar; para baixo = recuar) e arraste o dedo no espaço principal para olhar.</p>
-      <p>Aproxime-se de uma capa e toque/clique nela para ver os dados do episódio e ouvir o áudio.</p>
-    </div>
-
-    <div class="controls">
-      <button id="helpBtn">Ajuda</button>
-      <button id="musicBtn">🔊 Ligar música</button>
-    </div>
-
-    <div id="joystick" aria-label="Controlos de movimento">
-      <div id="stick"></div>
-    </div>
-
-    <div id="crosshair">+</div>
-
-    <div id="info" class="panel hidden">
-      <button id="closeInfo" aria-label="Fechar">×</button>
-      <div id="infoCover"></div>
-      <div>
-        <h2 id="infoTitle"></h2>
-        <p id="infoMeta"></p>
-        <button id="playEpisode">▶ Ouvir episódio</button>
-      </div>
-    </div>
-
-    <div id="roomLabel">Átrio dos Livros</div>
+  <div id="hud">
+    <div class="brand">Museu Virtual dos Livros<br><span>Prazeres Interrompidos</span></div>
+    <div id="roomLabel">ENTRADA PRINCIPAL</div>
+    <div class="help">↑ Avançar &nbsp; ↓ Recuar &nbsp; ← → Virar</div>
   </div>
-
-  <audio id="ambience" loop preload="none"></audio>
-  <audio id="episodeAudio" preload="none"></audio>
-
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
-    }
-  }
-  </script>
-  <script type="module" src="js/museu.js"></script>
+  <div id="loading">A carregar o museu…</div>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
