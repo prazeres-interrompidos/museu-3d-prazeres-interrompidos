@@ -9,7 +9,8 @@ scene.background = new THREE.Color(0xd9d1c4);
 scene.fog = new THREE.Fog(0xd9d1c4, 35, 95);
 
 const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, 0.05, 120);
-camera.position.set(0, 1.7, 14.2);
+// Posição inicial: no exterior da Entrada Principal, virado para dentro do museu.
+camera.position.set(0, 1.7, 26.0);
 camera.rotation.order = 'YXZ';
 
 const renderer = new THREE.WebGLRenderer({antialias:true});
@@ -158,7 +159,7 @@ const sign=box('Placa',0,2.7,21.6,6.4,1.9,.12,mats.innerWall,false);
 const signTex=coverTexture('ENTRADA\nPRINCIPAL'); const signArt=new THREE.Mesh(new THREE.PlaneGeometry(5.8,1.5),new THREE.MeshStandardMaterial({map:signTex,roughness:.9}));signArt.position.set(0,2.7,21.5);scene.add(signArt);
 
 // Collision system: swept, axis-separated movement with a player radius.
-const player={radius:.34,height:1.72,yaw:Math.PI, speed:3.4};
+const player={radius:.34,height:1.72,yaw:0, speed:3.4};
 let keys={};
 addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();keys[e.code]=true}});
 addEventListener('keyup',e=>{keys[e.code]=false});
@@ -178,8 +179,12 @@ function moveWithCollision(dx,dz){
 }
 
 function updateRoomLabel(){
-  let best='ENTRADA PRINCIPAL'; let bd=Infinity;
-  for(const a of roomAreas){const cx=Math.max(a.minX,Math.min(camera.position.x,a.maxX));const cz=Math.max(a.minZ,Math.min(camera.position.z,a.maxZ));const d=(camera.position.x-cx)**2+(camera.position.z-cz)**2;if(d<bd){bd=d;best=`${a.r.label} — ${a.r.episodes}`}}
+  let best='ENTRADA PRINCIPAL';
+  for(const a of roomAreas){
+    if(camera.position.x>=a.minX && camera.position.x<=a.maxX && camera.position.z>=a.minZ && camera.position.z<=a.maxZ){
+      best=`${a.r.label} — ${a.r.episodes}`; break;
+    }
+  }
   document.getElementById('roomLabel').textContent=best;
 }
 
