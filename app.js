@@ -275,7 +275,29 @@ try {
   }
 
   var clock=new THREE.Clock();
-  function animate(){
+  
+/* ROOM_COLORS_PATCH */
+const ROOM_COLORS = {
+  "SALA 1": 0xC9826B,
+  "SALA 2": 0x7FA58A,
+  "SALA 3": 0x7894A8,
+  "SALA 4": 0xC0A06A,
+  "SALA 5": 0x9A7FA3,
+  "SALA 6": 0x5F8F8B
+};
+function applyRoomColors() {
+  if (!scene) return;
+  scene.traverse(function(o) {
+    if (!o.isMesh || !o.material || !o.userData) return;
+    const room = o.userData.room || o.userData.sala || o.userData.roomName;
+    if (room && ROOM_COLORS[room]) {
+      o.material = o.material.clone();
+      o.material.color.setHex(ROOM_COLORS[room]);
+    }
+  });
+}
+
+function animate(){
     requestAnimationFrame(animate);
     var dt=Math.min(clock.getDelta(),.05);
     if(keys.ArrowLeft) camera.rotation.y += 1.6*dt;
@@ -311,3 +333,4 @@ try {
   showError('Erro ao iniciar o museu 3D: ' + (err && err.message ? err.message : err));
 }
 })();
+window.addEventListener('load', function(){ setTimeout(applyRoomColors, 50); });
