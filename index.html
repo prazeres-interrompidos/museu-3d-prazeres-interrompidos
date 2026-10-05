@@ -1,18 +1,20 @@
 <!doctype html>
 <html lang="pt-PT">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Museu Virtual dos Livros — Prazeres Interrompidos</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Museu Virtual dos Livros — Prazeres Interrompidos</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="hud">
-    <div class="brand">Museu Virtual dos Livros<br><span>Prazeres Interrompidos</span></div>
-    <div id="roomLabel">ENTRADA PRINCIPAL</div>
-    <div class="help">↑ Avançar &nbsp; ↓ Recuar &nbsp; ← → Virar</div>
-  </div>
-  <div id="loading">A carregar o museu…</div>
-  <script type="module" src="app.js"></script>
+<div id="hud">
+  <div class="brand">Museu Virtual dos Livros<br><span>Prazeres Interrompidos</span></div>
+  <div id="roomLabel">ENTRADA PRINCIPAL</div>
+  <div class="help">↑ Avançar &nbsp; ↓ Recuar &nbsp; ← → Virar</div>
+</div>
+<div id="loading">A carregar o museu…</div>
+<div id="error" hidden></div>
+<!-- Classic build: avoids module-import failures in GitHub Pages/browser environments. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
