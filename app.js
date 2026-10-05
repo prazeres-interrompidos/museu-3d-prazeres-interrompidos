@@ -39,14 +39,18 @@ try {
   scene.add(mainLight);
 
   var mats = {
-    floor: new THREE.MeshStandardMaterial({color:0xd7cbbb, roughness:.8}),
-    wall: new THREE.MeshStandardMaterial({color:0xf1ece4, roughness:.75}),
+    floor: new THREE.MeshStandardMaterial({color:0xd7cbbb, roughness:.82}),
+    wall: new THREE.MeshStandardMaterial({color:0xe9e3d9, roughness:.76}),
     wallDark: new THREE.MeshStandardMaterial({color:0x514b45, roughness:.8}),
-    wood: new THREE.MeshStandardMaterial({color:0x795538, roughness:.55}),
-    dark: new THREE.MeshStandardMaterial({color:0x302922, roughness:.7}),
-    green: new THREE.MeshStandardMaterial({color:0x3f6b45, roughness:.85}),
-    pot: new THREE.MeshStandardMaterial({color:0x8b7767, roughness:.8}),
-    gold: new THREE.MeshStandardMaterial({color:0xb79b68, metalness:.35, roughness:.3})
+    gold: new THREE.MeshStandardMaterial({color:0xb79b68, metalness:.35, roughness:.3}),
+    roomFloors: [
+      new THREE.MeshStandardMaterial({color:0xc9a38d, roughness:.86}),
+      new THREE.MeshStandardMaterial({color:0xb7c7b1, roughness:.86}),
+      new THREE.MeshStandardMaterial({color:0xa9bccb, roughness:.86}),
+      new THREE.MeshStandardMaterial({color:0xd2bb86, roughness:.86}),
+      new THREE.MeshStandardMaterial({color:0xb9a7bf, roughness:.86}),
+      new THREE.MeshStandardMaterial({color:0x9ebdb8, roughness:.86})
+    ]
   };
 
   var colliders = [];
@@ -84,19 +88,19 @@ try {
   // Central entrance/atrium.
   box('Átrio',0,.02,0,16,.16,14,mats.floor,false);
 
+  // Each room has its own floor colour. The walls remain neutral so the
+  // visitor can immediately distinguish the six galleries.
+  rooms.forEach(function(r){
+    box('Pavimento Sala '+r.id,r.cx,0.055,r.cz,RW-.84,.10,RD-.84,mats.roomFloors[r.id-1],false);
+  });
+
   // Build each room as four walls with a 5.4 m opening on the side facing the atrium.
   rooms.forEach(function(r){
     var L=RW/2, D=RD/2, x=r.cx, z=r.cz, opening=5.4;
     var sideOpening=opening;
     if (r.id===1 || r.id===2) {
       // South wall opens to the entrance.
-      wall(x,z-D,RW/2-sideOpening/2,WT);
-      wall(x,z-D,-(RW/2-sideOpening/2),WT); // replaced below
-      // Use two explicit side pieces; no negative geometry.
-      var clear=[];
-      // Remove the two placeholder pieces just added.
-      scene.remove(scene.children[scene.children.length-1]);
-      scene.remove(scene.children[scene.children.length-1]);
+      // Two solid pieces leave a 5.4 m open passage.
       var sideLen=(RW-sideOpening)/2;
       wall(x-L+sideLen/2,z-D,sideLen,WT);
       wall(x+L-sideLen/2,z-D,sideLen,WT);
@@ -178,51 +182,17 @@ try {
     }
   });
 
-  function bench(x,z,rot) {
-    var g=new THREE.Group();g.position.set(x,.55,z);g.rotation.y=rot||0;
-    var seat=new THREE.Mesh(new THREE.BoxGeometry(3.2,.28,.62),mats.wood);
-    var cushion=new THREE.Mesh(new THREE.BoxGeometry(2.9,.18,.54),mats.dark);
-    cushion.position.y=.23;g.add(seat);g.add(cushion);
-    scene.add(g);
-  }
-
-  function plant(x,z,s) {
-    var g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(s||1);
-    var pot=new THREE.Mesh(new THREE.CylinderGeometry(.45,.58,.65,20),mats.pot);pot.position.y=.33;
-    g.add(pot);
-    for(var i=0;i<8;i++){
-      var a=i*Math.PI/4;
-      var leaf=new THREE.Mesh(new THREE.SphereGeometry(.48,10,8),mats.green);
-      leaf.position.set(Math.cos(a)*.42,1.2+Math.sin(i*1.7)*.12,Math.sin(a)*.42);
-      leaf.scale.set(1,.7,1);g.add(leaf);
-    }
-    scene.add(g);
-  }
-
-  rooms.forEach(function(r){
-    bench(r.cx,r.cz+2);
-    bench(r.cx,r.cz-2);
-    bench(r.cx-4,r.cz,Math.PI/2);
-    bench(r.cx+4,r.cz,Math.PI/2);
-    plant(r.cx-5.2,r.cz-4,.85);
-    plant(r.cx+5.2,r.cz-4,.85);
-    plant(r.cx-5.2,r.cz+4,.85);
-    plant(r.cx+5.2,r.cz+4,.85);
-  });
-
-  // Entrance furniture.
-  box('Mesa central',0,.65,1.0,3.4,.5,1.4,mats.wood,true);
-  plant(0,0,.9);
+  // The museum is intentionally kept open: no benches and no plants.
 
   // Lighting.
   rooms.forEach(function(r){
     [-4,0,4].forEach(function(px){
-      var l=new THREE.PointLight(0xffe7c5,45,9,2);
+      var l=new THREE.PointLight(0xffe7c5,32,10,2);
       l.position.set(r.cx+px,3.8,r.cz);
       scene.add(l);
     });
   });
-  var atriumLight=new THREE.PointLight(0xffedcf,85,14,2);
+  var atriumLight=new THREE.PointLight(0xffedcf,65,14,2);
   atriumLight.position.set(0,3.7,3);
   scene.add(atriumLight);
 
@@ -238,11 +208,43 @@ try {
   // Movement and collision.
   var player={radius:.45,height:1.72,speed:3.6};
   var keys={};
+  var touchMove={x:0,y:0,active:false};
   function isArrow(code){return code==='ArrowUp'||code==='ArrowDown'||code==='ArrowLeft'||code==='ArrowRight';}
   window.addEventListener('keydown',function(e){
     if(isArrow(e.code)){keys[e.code]=true;e.preventDefault();}
   },{passive:false});
   window.addEventListener('keyup',function(e){if(isArrow(e.code))keys[e.code]=false;},{passive:false});
+
+  // Mobile joystick: vertical axis moves forward/backward, horizontal axis turns.
+  var joystick=document.getElementById('joystick');
+  var stick=document.getElementById('stick');
+  var joyPointer=null;
+  function setJoystick(clientX,clientY){
+    var rect=joystick.getBoundingClientRect();
+    var cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
+    var dx=clientX-cx, dy=clientY-cy;
+    var max=rect.width*.34;
+    var len=Math.sqrt(dx*dx+dy*dy);
+    if(len>max){ dx*=max/len; dy*=max/len; }
+    touchMove.x=dx/max;
+    touchMove.y=dy/max;
+    touchMove.active=true;
+    stick.style.transform='translate('+dx+'px,'+dy+'px)';
+  }
+  function resetJoystick(){
+    touchMove.x=0; touchMove.y=0; touchMove.active=false; joyPointer=null;
+    stick.style.transform='translate(0,0)';
+  }
+  if(joystick){
+    joystick.addEventListener('pointerdown',function(e){
+      joyPointer=e.pointerId; joystick.setPointerCapture(e.pointerId); setJoystick(e.clientX,e.clientY); e.preventDefault();
+    },{passive:false});
+    joystick.addEventListener('pointermove',function(e){
+      if(joyPointer===e.pointerId){ setJoystick(e.clientX,e.clientY); e.preventDefault(); }
+    },{passive:false});
+    joystick.addEventListener('pointerup',resetJoystick,{passive:false});
+    joystick.addEventListener('pointercancel',resetJoystick,{passive:false});
+  }
 
   function blocked(x,z){
     var r=player.radius;
@@ -278,9 +280,13 @@ try {
     var dt=Math.min(clock.getDelta(),.05);
     if(keys.ArrowLeft) camera.rotation.y += 1.6*dt;
     if(keys.ArrowRight) camera.rotation.y -= 1.6*dt;
+    if(touchMove.active){
+      camera.rotation.y -= touchMove.x*1.8*dt;
+    }
     var f=0;
     if(keys.ArrowUp) f+=1;
     if(keys.ArrowDown) f-=1;
+    if(touchMove.active) f += -touchMove.y;
     if(f){
       var dir=new THREE.Vector3(0,0,-1);
       dir.applyAxisAngle(new THREE.Vector3(0,1,0),camera.rotation.y);
