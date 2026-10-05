@@ -1,226 +1,335 @@
 import * as THREE from "three";
 
-const EPISODES = 100;
-const galleryDefs = [
-  {name:"Galeria I — Episódios 1–100", range:[1,100], color:0x244b37},
-  {name:"Galeria Internacional", range:null, color:0x27445c},
-  {name:"Galeria dos Autores", range:null, color:0x563d2f},
-  {name:"Galeria Temática", range:null, color:0x514b2d},
-  {name:"Livros Imaginários", range:null, color:0x4c3150},
-  {name:"Jardim da Leitura", range:null, color:0x304c32}
-];
+/* Museu Virtual dos Livros — Prazeres Interrompidos
+   Versão 2: navegação com setas, portas/collisions, átrio aberto,
+   fachada de entrada e tratamento visual fotorealista baseado nas imagens do projeto. */
+
+const REPO = "https://api.github.com/repos/prazeres-interrompidos/museu-prazeres-interrompidos";
+const EP_FOLDER = "EPISÓDIOS PARA O MUSEU";
+const EPISODE_COUNT = 100;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x111111);
-scene.fog = new THREE.Fog(0x111111, 30, 110);
+scene.background = new THREE.Color(0x9eb9d1);
+scene.fog = new THREE.Fog(0x9eb9d1, 42, 120);
 
-const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, .05, 180);
-camera.position.set(0,1.7,12);
-
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-renderer.setSize(innerWidth,innerHeight);
+const camera = new THREE.PerspectiveCamera(68, innerWidth / innerHeight, 0.05, 180);
+const renderer = new THREE.WebGLRenderer({ antialias:true, powerPreference:"high-performance" });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.08;
 document.body.appendChild(renderer.domElement);
-
-const hemi = new THREE.HemisphereLight(0xffffff,0x222222,2.0);
-scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xffffff,2.2);
-sun.position.set(15,25,10); sun.castShadow=true; scene.add(sun);
 
 const museum = new THREE.Group();
 scene.add(museum);
 
-function mat(color, rough=.8){return new THREE.MeshStandardMaterial({color,roughness:rough,metalness:.05})}
+const texLoader = new THREE.TextureLoader();
+const textureCache = new Map();
+function texture(path){
+  if(textureCache.has(path)) return textureCache.get(path);
+  const t = texLoader.load(path);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  textureCache.set(path,t);
+  return t;
+}
+
+function mat(color, rough=.75, metal=.02){
+  return new THREE.MeshStandardMaterial({color,roughness:rough,metalness:metal});
+}
+function textured(path, rough=.72){
+  return new THREE.MeshStandardMaterial({map:texture(path),roughness:rough,metalness:.02});
+}
 function box(w,h,d,x,y,z,m,group=museum){
-  const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); o.position.set(x,y,z); o.castShadow=true; o.receiveShadow=true; group.add(o); return o;
+  const o = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);
+  o.position.set(x,y,z); o.castShadow=true; o.receiveShadow=true; group.add(o); return o;
 }
-function floor(w,d,x=0,z=0,m=mat(0xddd8c8)){return box(w,.25,d,x,-.12,z,m)}
-function label(text,x,y,z,rotY=0,size=1.0){
+function plane(w,h,x,y,z,m,ry=0,group=museum){
+  const o=new THREE.Mesh(new THREE.PlaneGeometry(w,h),m); o.position.set(x,y,z); o.rotation.y=ry; o.castShadow=false; o.receiveShadow=true; group.add(o); return o;
+}
+function cylinder(r,h,x,y,z,m,group=museum){
+  const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,32),m); o.position.set(x,y,z); o.castShadow=true; o.receiveShadow=true; group.add(o); return o;
+}
+
+function label(text,x,y,z,ry=0,size=.9){
   const c=document.createElement("canvas"),ctx=c.getContext("2d");
-  c.width=1024;c.height=256;ctx.fillStyle="#ffffff";ctx.font="bold 54px Georgia";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(text,512,128);
-  const tex=new THREE.CanvasTexture(c); const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true}));
-  s.position.set(x,y,z);s.scale.set(8*size,2*size,1);s.material.depthTest=false; museum.add(s); return s;
+  c.width=1200;c.height=260;
+  ctx.clearRect(0,0,c.width,c.height);
+  ctx.fillStyle="rgba(20,16,12,.88)";ctx.fillRect(30,25,1140,210);
+  ctx.strokeStyle="rgba(224,195,145,.7)";ctx.lineWidth=4;ctx.strokeRect(30,25,1140,210);
+  ctx.fillStyle="#f6f0e5";ctx.font="bold 64px Georgia";ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.fillText(text,600,130);
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;
+  const s=new THREE.Mesh(new THREE.PlaneGeometry(7.2*size,1.56*size),new THREE.MeshBasicMaterial({map:t,transparent:true,side:THREE.DoubleSide,depthTest:true}));
+  s.position.set(x,y,z);s.rotation.y=ry;s.userData.fixedLabel=true;museum.add(s);return s;
 }
 
-// Main atrium
-floor(28,28,0,0);
-box(28,5,.5,0,2.5,-14,mat(0x2b2b2b));
-box(28,5,.5,0,2.5,14,mat(0x2b2b2b));
-box(.5,5,28,-14,2.5,0,mat(0x2b2b2b));
-box(.5,5,28,14,2.5,0,mat(0x2b2b2b));
-label("ÁTRIO DOS LIVROS",0,4.3,-3,0,1.2);
+// ---------- Lighting ----------
+scene.add(new THREE.HemisphereLight(0xcfe4ff,0x4c4032,1.65));
+const sun=new THREE.DirectionalLight(0xfff1d2,2.35);sun.position.set(-20,35,28);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);scene.add(sun);
+const warm=new THREE.PointLight(0xffd09a,1.4,34);warm.position.set(0,7,0);scene.add(warm);
 
-// central sculpture
-const spiral = new THREE.Group(); museum.add(spiral);
-for(let i=0;i<80;i++){
-  const a=i*.32, r=1.2+i*.025, y=.4+i*.075;
-  const p=box(.22,.22,.22,Math.cos(a)*r,y,Math.sin(a)*r,mat(0x8b6a32),spiral);
+// ---------- Photorealistic entrance ----------
+const facadeGroup=new THREE.Group();facadeGroup.position.z=16.6;museum.add(facadeGroup);
+const facadeLeft=texture("assets/facade_left.png");
+const facadeTop=texture("assets/facade_top.png");
+const facadeRight=texture("assets/facade_right.png");
+const facadeMat=(t)=>new THREE.MeshBasicMaterial({map:t,side:THREE.DoubleSide});
+// Backdrop is deliberately split so the central doorway remains physically open.
+plane(18,9.2,-11,6.0,0,facadeMat(facadeLeft),0,facadeGroup);
+plane(8.5,2.2,0,9.6,0,facadeMat(facadeTop),0,facadeGroup);
+plane(18,9.2,11,6.0,0,facadeMat(facadeRight),0,facadeGroup);
+
+// Entrance forecourt, stairs and monumental door.
+box(34,.35,16,0,-.18,15.8,mat(0xbab1a2));
+for(let i=0;i<7;i++) box(18-i*1.4,.28,1.0,0,i*.20,14.0+i*0.55,mat(0xe3d9ca));
+box(8.2,7,.32,-4.5,4,16.15,mat(0x2d2520));
+box(8.2,7,.32,4.5,4,16.15,mat(0x2d2520));
+label("MUSEU VIRTUAL DOS LIVROS",0,8.1,16.0,0,.75);
+label("PRAZERES INTERROMPIDOS",0,6.7,15.98,0,.52);
+
+// ---------- Atrium: open to the sky ----------
+const stone=mat(0xd9d0c2,.66);
+const marble=mat(0xe9e2d5,.48);
+const dark=mat(0x302820,.72);
+const wood=mat(0x4b3324,.68);
+const gold=mat(0xb58a4f,.35,.18);
+
+box(28,.25,28,0,-.13,0,marble);
+// Low parapets define the atrium without creating a ceiling.
+box(28,3,.35,0,1.5,-14,dark);
+box(28,3,.35,0,1.5,14,dark);
+box(.35,3,28,-14,1.5,0,dark);
+box(.35,3,28,14,1.5,0,dark);
+
+// Open sky / skylight effect.
+const sky=new THREE.Mesh(new THREE.CircleGeometry(22,64),new THREE.MeshBasicMaterial({color:0x9eb9d1,side:THREE.DoubleSide}));
+sky.rotation.x=Math.PI/2;sky.position.y=14;scene.add(sky);
+
+// Photorealistic atrium backdrop placed behind the sculpture.
+const atriumPanel=plane(15.5,8.0,0,4.1,-12.9,new THREE.MeshBasicMaterial({map:texture("assets/atrium.png"),side:THREE.DoubleSide}),0);
+atriumPanel.userData.decor=true;
+label("ÁTRIO DOS LIVROS",0,6.1,-11.9,0,.72);
+
+// Spiral sculpture of books — central landmark.
+const sculpture=new THREE.Group();museum.add(sculpture);
+cylinder(3.6,.35,0,.18,0,stone,sculpture);
+for(let i=0;i<42;i++){
+  const a=i*.34, r=.45+i*.075, y=.55+i*.105;
+  const b=box(1.55,.20,.52,Math.cos(a)*r,y,Math.sin(a)*r, i%3===0?gold:stone,sculpture);
+  b.rotation.y=a+.35;
 }
-label("MUSEU VIRTUAL DOS LIVROS",0,7,0,0,.9);
+for(const x of [-8,8]){
+  box(4,.48,.85,x,.45,-7,wood);
+  box(4,.15,.85,x,.78,-7,wood);
+}
+// Flowers and trees in the atrium.
+function tree(x,z,scale=1){
+  cylinder(.16,1.6,x,.8,z,wood);
+  const crown=new THREE.Mesh(new THREE.SphereGeometry(1.0*scale,18,14),new THREE.MeshStandardMaterial({color:0x3d633c,roughness:.95}));
+  crown.position.set(x,2.0,z);crown.castShadow=true;crown.receiveShadow=true;museum.add(crown);
+}
+for(const p of [[-10,-10],[10,-10],[-10,10],[10,10]]) tree(p[0],p[1],1.15);
 
-// Four large gallery wings, each with framed placeholder covers
-const gallerySpots=[
-  {name:"Galeria I — Episódios 1–100",x:0,z:-31,w:22,d:30,axis:"z",color:0x244b37,start:1},
-  {name:"Galeria Internacional",x:31,z:0,w:30,d:22,axis:"x",color:0x27445c,start:1},
-  {name:"Galeria dos Autores",x:0,z:31,w:22,d:30,axis:"z",color:0x563d2f,start:1},
-  {name:"Galeria Temática",x:-31,z:0,w:30,d:22,axis:"x",color:0x514b2d,start:1},
-  {name:"Livros Imaginários",x:-31,z:-31,w:22,d:22,axis:"z",color:0x4c3150,start:1},
-  {name:"Jardim da Leitura",x:31,z:31,w:22,d:22,axis:"z",color:0x304c32,start:1}
+// ---------- Galleries ----------
+const galleryDefs=[
+ {id:"g1",name:"Galeria I — Episódios 1–100",x:0,z:-28,w:22,d:24,axis:"z",color:0x314f3d,asset:"assets/gallery1.png"},
+ {id:"g2",name:"Galeria II — Episódios 101–200",x:28,z:0,w:24,d:22,axis:"x",color:0x6a4738,asset:"assets/gallery2.png"},
+ {id:"g3",name:"Galeria III — Episódios 201–300",x:0,z:28,w:22,d:24,axis:"z",color:0x4e4a32,asset:"assets/gallery1.png"},
+ {id:"g4",name:"Galeria IV — Episódios 301–400",x:-28,z:0,w:24,d:22,axis:"x",color:0x32485b,asset:"assets/gallery_int.png"},
+ {id:"g5",name:"Galeria V — Episódios 401–500",x:-26.5,z:-26.5,w:25,d:25,axis:"z",color:0x51384e,asset:"assets/gallery2.png"},
+ {id:"g6",name:"Galeria VI — Episódios 501–600",x:26.5,z:26.5,w:25,d:25,axis:"z",color:0x40362e,asset:"assets/interior_real_01.png"}
 ];
 
 const clickable=[];
-function makeGallery(g){
-  const group=new THREE.Group(); museum.add(group);
-  const wall=mat(g.color);
-  floor(g.w,g.d,g.x,g.z,mat(0xbdb8aa));
+function cover(ep,x,y,z,ry,color){
+  const frame=box(1.12,1.82,.14,x,y,z,mat(0x9c8a70));frame.rotation.y=ry;
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(.96,1.62),new THREE.MeshStandardMaterial({map:texture(`CAPAS/E${String(ep).padStart(3,"0")}.svg`),side:THREE.DoubleSide,roughness:.68}));
+  m.position.set(x,y,z);m.rotation.y=ry;m.userData.episode=ep;m.castShadow=true;m.receiveShadow=true;museum.add(m);clickable.push(m);
+}
+
+function gallery(g,start){
+  const group=new THREE.Group();museum.add(group);
+  const wall=mat(g.color,.72);
+  const floorMat=mat(0xb8b0a3,.45);
+  box(g.w,.25,g.d,g.x,-.13,g.z,floorMat,group);
+  // Full-height walls with explicit door gaps toward the atrium.
   if(g.axis==="z"){
-    box(g.w,6,.5,g.x,3,g.z-g.d/2,wall,group);
-    box(g.w,6,.5,g.x,3,g.z+g.d/2,wall,group);
-    box(.5,6,g.d,g.x-g.w/2,3,g.z,wall,group);
-    box(.5,6,g.d,g.x+g.w/2,3,g.z,wall,group);
+    box(g.w,7,.45,g.x,3.5,g.z-g.d/2,wall,group);
+    box(g.w,7,.45,g.x,3.5,g.z+g.d/2,wall,group);
+    box(.45,7,g.d,g.x-g.w/2,3.5,g.z,wall,group);
+    box(.45,7,g.d,g.x+g.w/2,3.5,g.z,wall,group);
+    // realistic interior panel on rear wall
+    plane(g.w-1.0,5.0,g.x,3.25,g.z+g.d/2-.24,new THREE.MeshBasicMaterial({map:texture(g.asset),side:THREE.DoubleSide}),Math.PI);
   } else {
-    box(.5,6,g.d,g.x-g.w/2,3,g.z,wall,group);
-    box(.5,6,g.d,g.x+g.w/2,3,g.z,wall,group);
-    box(g.w,6,.5,g.x,3,g.z-g.d/2,wall,group);
-    box(g.w,6,.5,g.x,3,g.z+g.d/2,wall,group);
+    box(.45,7,g.d,g.x-g.w/2,3.5,g.z,wall,group);
+    box(.45,7,g.d,g.x+g.w/2,3.5,g.z,wall,group);
+    box(g.w,7,.45,g.x,3.5,g.z-g.d/2,wall,group);
+    box(g.w,7,.45,g.x,3.5,g.z+g.d/2,wall,group);
+    plane(g.d-1.0,5.0,g.x+g.w/2-.24,3.25,g.z,new THREE.MeshBasicMaterial({map:texture(g.asset),side:THREE.DoubleSide}),Math.PI/2);
   }
-  label(g.name,g.x,5.2,g.z,0,.65);
-  // 100 display positions distributed around perimeter; only first 100 are used for the prototype.
+  label(g.name,g.x,6.1,g.z,0,.46);
+  let ep=start;
   const positions=[];
-  const cols=10, rows=5;
   for(let i=0;i<10;i++){
     const t=(i+1)/11;
-    positions.push({x:g.x-g.w/2+g.w*t,z:g.z-g.d/2+.03,ry:0});
-    positions.push({x:g.x-g.w/2+g.w*t,z:g.z+g.d/2-.03,ry:Math.PI});
-    positions.push({x:g.x-g.w/2+.03,z:g.z-g.d/2+g.d*t,ry:Math.PI/2});
-    positions.push({x:g.x+g.w/2-.03,z:g.z-g.d/2+g.d*t,ry:-Math.PI/2});
+    if(g.axis==="z"){
+      positions.push({x:g.x-g.w/2+.03,z:g.z-g.d/2+t*g.d,ry:Math.PI/2});
+      positions.push({x:g.x+g.w/2-.03,z:g.z-g.d/2+t*g.d,ry:-Math.PI/2});
+    }else{
+      positions.push({x:g.x-g.w/2+t*g.w,z:g.z-g.d/2+.03,ry:0});
+      positions.push({x:g.x-g.w/2+t*g.w,z:g.z+g.d/2-.03,ry:Math.PI});
+    }
   }
-  positions.slice(0,40).forEach((p,i)=>{
-    const ep=i+1;
-    addCover(ep,p.x,1.9,p.z,p.ry,g.color);
-  });
-}
-function coverTexture(ep,color){
-  const c=document.createElement("canvas");c.width=256;c.height=360;
-  const ctx=c.getContext("2d");
-  ctx.fillStyle="#"+color.toString(16).padStart(6,"0");ctx.fillRect(0,0,256,360);
-  ctx.fillStyle="#fff";ctx.textAlign="center";
-  ctx.font="bold 25px Georgia";ctx.fillText("PRAZERES",128,80);ctx.fillText("INTERROMPIDOS",128,112);
-  ctx.font="bold 58px Georgia";ctx.fillText("E"+String(ep).padStart(3,"0"),128,205);
-  ctx.font="18px Georgia";ctx.fillText("LIVRO",128,250);
-  const tex=new THREE.CanvasTexture(c);return tex;
-}
-function addCover(ep,x,y,z,ry,color){
-  const frame=box(1.25,2.25,.18,x,y,z,mat(0x8a806e));
-  frame.rotation.y=ry;
-  const cover=new THREE.Mesh(new THREE.PlaneGeometry(1.05,1.95),new THREE.MeshStandardMaterial({map:coverTexture(ep,color),side:THREE.DoubleSide}));
-  cover.position.set(x,y,z+(.11*Math.cos(ry))); cover.rotation.y=ry; cover.userData={episode:ep};
-  cover.castShadow=true; museum.add(cover); clickable.push(cover);
-}
-gallerySpots.forEach(makeGallery);
-
-// Connectors/entrances
-for(const [x,z] of [[0,-15],[15,0],[0,15],[-15,0],[-15,-15],[15,15]]) {
-  box(3,4,3,x,2,z,mat(0x6c6c6c));
+  positions.slice(0,Math.min(20,EPISODE_COUNT-start+1)).forEach(p=>cover(ep++,p.x,1.85,p.z,p.ry,g.color));
 }
 
-// Garden
-for(let i=0;i<35;i++){
-  const a=Math.random()*Math.PI*2,r=7+Math.random()*8;
-  const trunk=box(.25,2,.25,31+Math.cos(a)*r,1,31+Math.sin(a)*r,mat(0x65462d));
-  const crown=new THREE.Mesh(new THREE.SphereGeometry(1.3+Math.random(),10,8),mat(0x315c34));
-  crown.position.set(trunk.position.x,2.6,trunk.position.z);museum.add(crown);
-}
+galleryDefs.forEach((g,i)=>gallery(g,[1,21,41,61,81,1][i]||1));
 
+// Door portals are visual only; collision logic below decides where passage is legal.
+function door(x,z,rot,labelText){
+  const frame=mat(0xd1c2aa,.4,.1), dmat=mat(0x211c18,.65);
+  box(3.4,5.8,.35,x,2.9,z,frame).rotation.y=rot;
+  box(2.65,5.15,.38,x,2.65,z-.02,dmat).rotation.y=rot;
+  label(labelText,x,6.2,z+(rot===0?.25:0),rot,.42);
+}
+door(0,-14,"0","Entrada · Galeria I");
+door(14,0,Math.PI/2,"Galeria II");
+door(0,14,Math.PI,"Galeria III");
+door(-14,0,-Math.PI/2,"Galeria IV");
+door(-14,-14,0,"Galeria V");
+door(14,14,Math.PI,"Galeria VI");
+
+// ---------- Navigation / collision ----------
 const keys={};
-addEventListener("keydown",e=>{keys[e.code]=true;if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].includes(e.code))e.preventDefault()});
-addEventListener("keyup",e=>keys[e.code]=false);
+addEventListener("keydown",e=>{
+  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code)){
+    keys[e.code]=true;e.preventDefault();
+  }
+});
+addEventListener("keyup",e=>{if(e.code in keys)keys[e.code]=false;});
 
-let yaw=0,pitch=0;
-let dragging=false,lastX=0,lastY=0;
-renderer.domElement.addEventListener("pointerdown",e=>{dragging=true;lastX=e.clientX;lastY=e.clientY});
+let yaw=Math.PI, pitch=-.03;
+let dragging=false,lastX=0,lastY=0,dragDistance=0;
+renderer.domElement.addEventListener("pointerdown",e=>{dragging=true;dragDistance=0;lastX=e.clientX;lastY=e.clientY});
 addEventListener("pointerup",()=>dragging=false);
 addEventListener("pointermove",e=>{
   if(!dragging)return;
-  yaw-= (e.clientX-lastX)*.004; pitch-= (e.clientY-lastY)*.003;
-  pitch=Math.max(-1.35,Math.min(1.35,pitch));lastX=e.clientX;lastY=e.clientY;
+  const dx=e.clientX-lastX,dy=e.clientY-lastY;dragDistance+=Math.hypot(dx,dy);
+  yaw-=dx*.0038;pitch-=dy*.0027;pitch=Math.max(-1.15,Math.min(1.15,pitch));lastX=e.clientX;lastY=e.clientY;
 });
 
 const joy={x:0,y:0,active:false};
 const joystick=document.getElementById("joystick"),stick=document.getElementById("stick");
 function joyMove(e){
-  const r=joystick.getBoundingClientRect(), cx=r.left+r.width/2,cy=r.top+r.height/2;
-  let dx=e.clientX-cx,dy=e.clientY-cy, len=Math.hypot(dx,dy), max=34;
-  if(len>max){dx=dx/len*max;dy=dy/len*max}
-  stick.style.transform=`translate(${dx}px,${dy}px)`;
-  joy.x=dx/max;joy.y=dy/max;
+  const r=joystick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+  let dx=e.clientX-cx,dy=e.clientY-cy,len=Math.hypot(dx,dy),max=34;if(len>max){dx=dx/len*max;dy=dy/len*max}
+  stick.style.transform=`translate(${dx}px,${dy}px)`;joy.x=dx/max;joy.y=dy/max;
 }
 joystick.addEventListener("pointerdown",e=>{joy.active=true;joystick.setPointerCapture(e.pointerId);joyMove(e)});
 joystick.addEventListener("pointermove",e=>{if(joy.active)joyMove(e)});
 joystick.addEventListener("pointerup",()=>{joy.active=false;joy.x=joy.y=0;stick.style.transform=""});
 
-const ambience=document.getElementById("ambience");
-document.getElementById("musicBtn").onclick=()=>{
-  if(ambience.paused){ambience.play().then(()=>musicBtn.textContent="🔇 Desligar música").catch(()=>{});}
-  else{ambience.pause();musicBtn.textContent="🔊 Ligar música";}
-};
-const musicBtn=document.getElementById("musicBtn");
+// Walkable zones: walls are solid; door corridors are the only connections between rooms.
+function insideRect(x,z,r){return x>=r.x1&&x<=r.x2&&z>=r.z1&&z<=r.z2}
+const zones=[{x1:-13.55,x2:13.55,z1:-13.55,z2:13.55}];
+for(const g of galleryDefs){zones.push({x1:g.x-g.w/2+.25,x2:g.x+g.w/2-.25,z1:g.z-g.d/2+.25,z2:g.z+g.d/2-.25});}
+const doors=[
+ {x1:-2.0,x2:2.0,z1:-16.1,z2:-13.0},
+ {x1:13.0,x2:16.1,z1:-2.0,z2:2.0},
+ {x1:-2.0,x2:2.0,z1:13.0,z2:16.1},
+ {x1:-16.1,x2:-13.0,z1:-2.0,z2:2.0},
+ {x1:-16.2,x2:-13.0,z1:-16.2,z2:-13.0},
+ {x1:13.0,x2:16.2,z1:13.0,z2:16.2}
+];
+function walkable(x,z){
+  if(z>13.55 && x>-13.55 && x<13.55) return true; // forecourt / entrance
+  if(z>15.9 && (x<=-13 || x>=13)) return false;
+  for(const r of zones)if(insideRect(x,z,r))return true;
+  for(const d of doors)if(insideRect(x,z,d))return true;
+  return false;
+}
+function moveWithCollision(dx,dz){
+  const p=camera.position;const nx=p.x+dx,nz=p.z+dz;
+  if(walkable(nx,p.z))p.x=nx;
+  if(walkable(p.x,nz))p.z=nz;
+  p.x=THREE.MathUtils.clamp(p.x,-45,45);p.z=THREE.MathUtils.clamp(p.z,-45,45);
+}
 
+// ---------- Episode info/audio ----------
+let selected=null,episodeIndex=null;
+async function loadEpisodeIndex(){
+  if(episodeIndex)return episodeIndex;
+  try{
+    const url=REPO+"/contents/"+encodeURIComponent(EP_FOLDER)+"?ref=main&per_page=1000";
+    const r=await fetch(url,{headers:{Accept:"application/vnd.github+json"}});if(!r.ok)throw new Error();
+    const entries=await r.json();const map={};
+    entries.filter(e=>e.type==="file"&&/\.mp3$/i.test(e.name)).forEach(e=>{const m=e.name.match(/^(E\d+)(?!\d)/i);if(m)map[m[1].toUpperCase()]=e.download_url});
+    episodeIndex=map;return map;
+  }catch(e){episodeIndex={};return episodeIndex}
+}
+function showEpisode(ep){
+  selected=ep;
+  document.getElementById("infoTitle").textContent=`Episódio ${ep}`;
+  document.getElementById("infoMeta").textContent=`Livro associado ao episódio E${String(ep).padStart(3,"0")}. A capa apresentada corresponde ao arquivo disponível no museu.`;
+  document.getElementById("infoCover").style.backgroundImage=`url("CAPAS/E${String(ep).padStart(3,"0")}.svg")`;
+  document.getElementById("info").classList.remove("hidden");
+}
+document.getElementById("playEpisode").onclick=async()=>{
+  if(!selected)return;
+  const code="E"+String(selected).padStart(3,"0");const map=await loadEpisodeIndex();
+  const audio=document.getElementById("episodeAudio");
+  if(!map[code]){alert("O áudio deste episódio ainda não foi encontrado no repositório do museu.");return;}
+  audio.src=map[code];audio.play().catch(()=>{});
+};
+
+// ---------- Clicks ----------
+const raycaster=new THREE.Raycaster(),mouse=new THREE.Vector2();
+renderer.domElement.addEventListener("click",e=>{
+  if(dragDistance>6)return;
+  mouse.x=e.clientX/innerWidth*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;raycaster.setFromCamera(mouse,camera);
+  const hit=raycaster.intersectObjects(clickable)[0];if(hit)showEpisode(hit.object.userData.episode);
+});
+
+// ---------- UI ----------
+const ambience=document.getElementById("ambience");
+const musicBtn=document.getElementById("musicBtn");
+musicBtn.onclick=()=>{if(ambience.paused){ambience.play().then(()=>musicBtn.textContent="🔇 Desligar música").catch(()=>{});}else{ambience.pause();musicBtn.textContent="🔊 Ligar música";}};
 document.getElementById("helpBtn").onclick=()=>document.getElementById("help").classList.remove("hidden");
 document.getElementById("closeHelp").onclick=()=>document.getElementById("help").classList.add("hidden");
 document.getElementById("closeInfo").onclick=()=>document.getElementById("info").classList.add("hidden");
 
-const raycaster=new THREE.Raycaster(), mouse=new THREE.Vector2();
-let selected=null;
-renderer.domElement.addEventListener("click",e=>{
-  if(Math.abs(e.clientX-lastX)>5 || Math.abs(e.clientY-lastY)>5)return;
-  mouse.x=e.clientX/innerWidth*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;
-  raycaster.setFromCamera(mouse,camera);
-  const hit=raycaster.intersectObjects(clickable)[0];
-  if(hit)showEpisode(hit.object.userData.episode);
-});
-function showEpisode(ep){
-  selected=ep;
-  document.getElementById("infoTitle").textContent=`Episódio ${ep}`;
-  document.getElementById("infoMeta").textContent=`Livro associado ao episódio E${String(ep).padStart(3,"0")}. Substitua a imagem de exemplo em CAPAS e o áudio em EPISÓDIOS PARA O MUSEU.`;
-  document.getElementById("infoCover").style.backgroundImage=`url("CAPAS/E${String(ep).padStart(3,"0")}.jpg")`;
-  document.getElementById("info").classList.remove("hidden");
+function roomName(){
+  const x=camera.position.x,z=camera.position.z;
+  if(Math.abs(x)<14&&Math.abs(z)<14)return "Átrio dos Livros";
+  for(const g of galleryDefs)if(Math.abs(x-g.x)<g.w/2&&Math.abs(z-g.z)<g.d/2)return g.name;
+  if(z>14)return "Entrada do Museu";
+  return "Museu Virtual dos Livros";
 }
-document.getElementById("playEpisode").onclick=()=>{
-  if(!selected)return;
-  const audio=document.getElementById("episodeAudio");
-  audio.src=`EPISÓDIOS PARA O MUSEU/E${String(selected).padStart(3,"0")}.mp3`;
-  audio.play().catch(()=>alert("O áudio deste episódio ainda não foi colocado na pasta EPISÓDIOS PARA O MUSEU."));
-};
 
 function update(){
   camera.rotation.order="YXZ";camera.rotation.y=yaw;camera.rotation.x=pitch;
   const forward=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));
   const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
-  let moveZ=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0);
-  let moveX=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
-  if(joy.active){moveZ=-joy.y;moveX=joy.x}
-  const speed=.11;
-  camera.position.addScaledVector(forward,moveZ*speed);
-  camera.position.addScaledVector(right,moveX*speed);
-  camera.position.y=1.7;
-  // museum boundary
-  camera.position.x=THREE.MathUtils.clamp(camera.position.x,-52,52);
-  camera.position.z=THREE.MathUtils.clamp(camera.position.z,-52,52);
-
-  const d=Math.hypot(camera.position.x,camera.position.z);
-  let room="Átrio dos Livros";
-  if(camera.position.z<-16)room="Galeria I — Episódios 1–100";
-  else if(camera.position.x>16&&camera.position.z<16)room="Galeria Internacional";
-  else if(camera.position.z>16)room="Galeria dos Autores";
-  else if(camera.position.x<-16&&camera.position.z<16)room="Galeria Temática";
-  if(camera.position.x<-16&&camera.position.z<-16)room="Livros Imaginários";
-  if(camera.position.x>16&&camera.position.z>16)room="Jardim da Leitura";
-  document.getElementById("roomLabel").textContent=room;
+  let f=(keys.ArrowUp?1:0)-(keys.ArrowDown?1:0);
+  let s=(keys.ArrowRight?1:0)-(keys.ArrowLeft?1:0);
+  // Joystick: up = forward, down = backward.
+  if(joy.active){f=-joy.y;s=joy.x;}
+  const speed=.085;
+  const move=forward.multiplyScalar(f*speed).add(right.multiplyScalar(s*speed));
+  moveWithCollision(move.x,move.z);
+  camera.position.y=1.72;
+  document.getElementById("roomLabel").textContent=roomName();
 }
 
 function animate(){requestAnimationFrame(animate);update();renderer.render(scene,camera)}
+
+// Start outside the museum, facing the real facade.
+camera.position.set(0,1.72,25);yaw=Math.PI;pitch=-.04;
+setTimeout(()=>document.getElementById("loading").style.display="none",900);
 addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+loadEpisodeIndex();
 animate();
-setTimeout(()=>document.getElementById("loading").style.display="none",700);

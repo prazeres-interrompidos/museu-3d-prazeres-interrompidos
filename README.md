@@ -1,19 +1,20 @@
-# Museu 3D Prazeres Interrompidos
+# Museu Virtual dos Livros — Prazeres Interrompidos
 
-Primeiro protótipo navegável do Museu Virtual dos Livros — Prazeres Interrompidos.
+Protótipo navegável 3D em Three.js, preparado para publicação no GitHub Pages.
 
 ## Navegação
-- Computador: WASD/setas para andar; arrastar o rato para olhar.
-- Telemóvel/tablet: joystick para andar; arrastar o dedo para olhar.
-- Clicar/tocar numa capa abre o episódio.
-- O botão "Ouvir episódio" procura o MP3 correspondente em `EPISÓDIOS PARA O MUSEU/`.
+- Computador: apenas as setas **← ↑ → ↓**.
+- Rato: arrastar para olhar em redor.
+- Telemóvel/tablet: joystick; **para cima = avançar** e **para baixo = recuar**.
+- A circulação é limitada por paredes e só é possível atravessar as portas.
+- As salas mantêm o seu nome fixo nas paredes.
 
-## Estrutura
-- `index.html` — entrada do museu.
-- `css/museu.css` — interface.
-- `js/museu.js` — ambiente 3D, navegação e interação.
-- `CAPAS/` — capas reais dos livros.
-- `EPISÓDIOS PARA O MUSEU/` — áudios.
-- `assets/Dream.mp3` — música ambiente (copiar manualmente para esta pasta).
+## Conteúdo
+- Entrada com fachada fotorealista baseada na imagem de referência do Museu.
+- Átrio aberto ao céu, com bancos, árvores, flores e a escultura espiralada de livros.
+- Galerias com iluminação quente, paredes, teto e painéis visuais.
+- As capas E001–E100 continuam na pasta `CAPAS`.
+- O áudio pode ser carregado a partir da pasta `EPISÓDIOS PARA O MUSEU` do repositório principal do projeto.
 
-Este protótipo usa Three.js através de CDN. A primeira versão contém capas gráficas de demonstração geradas no próprio navegador; elas serão substituídas pelas capas reais.
+## GitHub Pages
+O projeto não precisa de um servidor próprio: pode ser publicado diretamente pela branch `main` e pela pasta raiz `/ (root)`.
