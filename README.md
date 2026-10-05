@@ -2,6 +2,14 @@
 
 Protótipo navegável 3D em Three.js, preparado para publicação no GitHub Pages.
 
+## Correções desta versão
+- As setas têm a orientação física correta: **↑ avança, ↓ recua, ← vira/desloca para a esquerda, → vira/desloca para a direita**.
+- O joystick mantém **cima = avançar** e **baixo = recuar**.
+- A colisão usa um raio de segurança à volta do visitante e impede atravessar paredes.
+- As portas principais têm aberturas reais na geometria, em vez de serem apenas elementos visuais.
+- A câmara inicia virada para o edifício.
+
+
 ## Navegação
 - Computador: apenas as setas **← ↑ → ↓**.
 - Rato: arrastar para olhar em redor.

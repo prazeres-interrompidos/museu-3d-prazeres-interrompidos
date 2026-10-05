@@ -18,9 +18,10 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.physicallyCorrectLights = true;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.08;
+renderer.toneMappingExposure = 1.0;
 document.body.appendChild(renderer.domElement);
 
 const museum = new THREE.Group();
@@ -68,7 +69,8 @@ function label(text,x,y,z,ry=0,size=.9){
 }
 
 // ---------- Lighting ----------
-scene.add(new THREE.HemisphereLight(0xcfe4ff,0x4c4032,1.65));
+scene.add(new THREE.HemisphereLight(0xddeeff,0x33281f,1.15));
+scene.add(new THREE.AmbientLight(0xffffff,0.18));
 const sun=new THREE.DirectionalLight(0xfff1d2,2.35);sun.position.set(-20,35,28);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);scene.add(sun);
 const warm=new THREE.PointLight(0xffd09a,1.4,34);warm.position.set(0,7,0);scene.add(warm);
 
@@ -158,7 +160,10 @@ function gallery(g,start){
   box(g.w,.25,g.d,g.x,-.13,g.z,floorMat,group);
   // Full-height walls with explicit door gaps toward the atrium.
   if(g.axis==="z"){
-    box(g.w,7,.45,g.x,3.5,g.z-g.d/2,wall,group);
+    // Front wall: real opening at the atrium-side doorway.
+    const sideW=(g.w-3.4)/2;
+    box(sideW,7,.45,g.x-(g.w-sideW)/2,3.5,g.z-g.d/2,wall,group);
+    box(sideW,7,.45,g.x+(g.w-sideW)/2,3.5,g.z-g.d/2,wall,group);
     box(g.w,7,.45,g.x,3.5,g.z+g.d/2,wall,group);
     box(.45,7,g.d,g.x-g.w/2,3.5,g.z,wall,group);
     box(.45,7,g.d,g.x+g.w/2,3.5,g.z,wall,group);
@@ -168,7 +173,10 @@ function gallery(g,start){
     box(.45,7,g.d,g.x-g.w/2,3.5,g.z,wall,group);
     box(.45,7,g.d,g.x+g.w/2,3.5,g.z,wall,group);
     box(g.w,7,.45,g.x,3.5,g.z-g.d/2,wall,group);
-    box(g.w,7,.45,g.x,3.5,g.z+g.d/2,wall,group);
+    // Atrium-side wall with a real doorway opening.
+    const sideD=(g.d-3.4)/2;
+    box(g.w,7,.45,g.x,3.5,g.z+(g.d-sideD)/2,wall,group);
+    box(g.w,7,.45,g.x,3.5,g.z-(g.d-sideD)/2,wall,group);
     plane(g.d-1.0,5.0,g.x+g.w/2-.24,3.25,g.z,new THREE.MeshBasicMaterial({map:texture(g.asset),side:THREE.DoubleSide}),Math.PI/2);
   }
   label(g.name,g.x,6.1,g.z,0,.46);
@@ -212,7 +220,7 @@ addEventListener("keydown",e=>{
 });
 addEventListener("keyup",e=>{if(e.code in keys)keys[e.code]=false;});
 
-let yaw=Math.PI, pitch=-.03;
+let yaw=0, pitch=-.03;
 let dragging=false,lastX=0,lastY=0,dragDistance=0;
 renderer.domElement.addEventListener("pointerdown",e=>{dragging=true;dragDistance=0;lastX=e.clientX;lastY=e.clientY});
 addEventListener("pointerup",()=>dragging=false);
@@ -233,32 +241,50 @@ joystick.addEventListener("pointerdown",e=>{joy.active=true;joystick.setPointerC
 joystick.addEventListener("pointermove",e=>{if(joy.active)joyMove(e)});
 joystick.addEventListener("pointerup",()=>{joy.active=false;joy.x=joy.y=0;stick.style.transform=""});
 
-// Walkable zones: walls are solid; door corridors are the only connections between rooms.
-function insideRect(x,z,r){return x>=r.x1&&x<=r.x2&&z>=r.z1&&z<=r.z2}
-const zones=[{x1:-13.55,x2:13.55,z1:-13.55,z2:13.55}];
-for(const g of galleryDefs){zones.push({x1:g.x-g.w/2+.25,x2:g.x+g.w/2-.25,z1:g.z-g.d/2+.25,z2:g.z+g.d/2-.25});}
-const doors=[
- {x1:-2.0,x2:2.0,z1:-16.1,z2:-13.0},
- {x1:13.0,x2:16.1,z1:-2.0,z2:2.0},
- {x1:-2.0,x2:2.0,z1:13.0,z2:16.1},
- {x1:-16.1,x2:-13.0,z1:-2.0,z2:2.0},
- {x1:-16.2,x2:-13.0,z1:-16.2,z2:-13.0},
- {x1:13.0,x2:16.2,z1:13.0,z2:16.2}
+// ---------- Robust collision / navigation ----------
+// Movement uses a small circular player radius and tests the proposed position
+// against the actual museum footprint. This prevents tunnelling through thin walls
+// and keeps the player inside the intended circulation areas.
+function inRect(x,z,r,pad=0){
+  return x>=r.x1-pad && x<=r.x2+pad && z>=r.z1-pad && z<=r.z2+pad;
+}
+const playerRadius=.48;
+
+// Walkable rectangles. Door openings are explicitly added as connectors.
+const zones=[
+  {x1:-13.55,x2:13.55,z1:-13.55,z2:13.55},
+  {x1:-13.55,x2:13.55,z1:13.55,z2:22.0},
+  {x1:-13.55,x2:13.55,z1:-39.55,z2:-16.45},
+  {x1:16.45,x2:39.55,z1:-11.0,z2:11.0},
+  {x1:-11.0,x2:11.0,z1:16.45,z2:39.55},
+  {x1:-39.55,x2:-16.45,z1:-11.0,z2:11.0},
+  {x1:-38.95,x2:-14.05,z1:-38.95,z2:-14.05},
+  {x1:14.05,x2:38.95,z1:14.05,z2:38.95}
 ];
-function walkable(x,z){
-  if(z>13.55 && x>-13.55 && x<13.55) return true; // forecourt / entrance
-  if(z>15.9 && (x<=-13 || x>=13)) return false;
-  for(const r of zones)if(insideRect(x,z,r))return true;
-  for(const d of doors)if(insideRect(x,z,d))return true;
+const connectors=[
+  {x1:-1.7,x2:1.7,z1:-17.5,z2:-12.7},
+  {x1:12.7,x2:17.5,z1:-1.7,z2:1.7},
+  {x1:-1.7,x2:1.7,z1:12.7,z2:17.5},
+  {x1:-17.5,x2:-12.7,z1:-1.7,z2:1.7},
+  {x1:-17.5,x2:-12.7,z1:-17.5,z2:-12.7},
+  {x1:12.7,x2:17.5,z1:12.7,z2:17.5}
+];
+
+function walkablePoint(x,z){
+  for(const r of zones) if(inRect(x,z,r,-playerRadius)) return true;
+  for(const r of connectors) if(inRect(x,z,r,-playerRadius)) return true;
   return false;
 }
-function moveWithCollision(dx,dz){
-  const p=camera.position;const nx=p.x+dx,nz=p.z+dz;
-  if(walkable(nx,p.z))p.x=nx;
-  if(walkable(p.x,nz))p.z=nz;
-  p.x=THREE.MathUtils.clamp(p.x,-45,45);p.z=THREE.MathUtils.clamp(p.z,-45,45);
-}
 
+function moveWithCollision(dx,dz){
+  const p=camera.position;
+  const tryX=p.x+dx, tryZ=p.z+dz;
+  // Test each axis separately so the player slides along walls instead of sticking.
+  if(walkablePoint(tryX,p.z)) p.x=tryX;
+  if(walkablePoint(p.x,tryZ)) p.z=tryZ;
+  p.x=THREE.MathUtils.clamp(p.x,-42,42);
+  p.z=THREE.MathUtils.clamp(p.z,-42,25);
+}
 // ---------- Episode info/audio ----------
 let selected=null,episodeIndex=null;
 async function loadEpisodeIndex(){
@@ -312,13 +338,13 @@ function roomName(){
 
 function update(){
   camera.rotation.order="YXZ";camera.rotation.y=yaw;camera.rotation.x=pitch;
-  const forward=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));
+  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
   const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
   let f=(keys.ArrowUp?1:0)-(keys.ArrowDown?1:0);
   let s=(keys.ArrowRight?1:0)-(keys.ArrowLeft?1:0);
   // Joystick: up = forward, down = backward.
   if(joy.active){f=-joy.y;s=joy.x;}
-  const speed=.085;
+  const speed=.11;
   const move=forward.multiplyScalar(f*speed).add(right.multiplyScalar(s*speed));
   moveWithCollision(move.x,move.z);
   camera.position.y=1.72;
@@ -328,7 +354,7 @@ function update(){
 function animate(){requestAnimationFrame(animate);update();renderer.render(scene,camera)}
 
 // Start outside the museum, facing the real facade.
-camera.position.set(0,1.72,25);yaw=Math.PI;pitch=-.04;
+camera.position.set(0,1.72,25);yaw=0;pitch=-.04;
 setTimeout(()=>document.getElementById("loading").style.display="none",900);
 addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 loadEpisodeIndex();
