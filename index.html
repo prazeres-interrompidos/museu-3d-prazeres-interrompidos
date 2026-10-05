@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Museu Virtual dos Livros – Prazeres Interrompidos</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#08090b;color:#fff;font-family:Georgia,serif}canvas{display:block}
+#top{position:fixed;z-index:20;top:12px;left:12px;display:flex;gap:7px;flex-wrap:wrap}button{background:#18191ddd;color:#fff;border:1px solid #ffffff45;border-radius:9px;padding:9px 12px;cursor:pointer}button:hover{background:#292b30}
+#hud{position:fixed;z-index:10;left:50%;bottom:12px;transform:translateX(-50%);width:min(920px,94vw);padding:10px 14px;text-align:center;background:#09090bd9;border:1px solid #ffffff38;border-radius:16px;backdrop-filter:blur(8px);pointer-events:none}.title{font-weight:bold;font-size:17px}.hint{font:12px Arial,sans-serif;opacity:.75;margin-top:4px}
+#info,#map,#status{display:none;position:fixed;z-index:30;background:#0c0d10f7;border:1px solid #ffffff3d;border-radius:16px;box-shadow:0 20px 70px #000;padding:18px}#info{right:16px;top:16px;width:min(360px,90vw)}#info h2{margin:6px 0;color:#d8bd83}.code{font:bold 14px Arial;letter-spacing:.12em}.small{font:13px Arial;line-height:1.45;opacity:.85}#cover{width:120px;height:175px;object-fit:cover;display:block;margin:10px auto;background:#222;border:1px solid #ffffff33}.play{font-size:15px;min-width:180px}.playing{background:#5d4b2a}
+#status{left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,88vw);text-align:center}.statusText{font:13px Arial;line-height:1.5}
+#map{inset:5%;overflow:auto}.plan{position:relative;max-width:950px;min-height:570px;margin:auto;background:#17191b;border:1px solid #555}.room{position:absolute;border:1px solid #bda66f;background:#2a3932;color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;font:bold 13px Arial;cursor:pointer;padding:5px}.room:hover{filter:brightness(1.25)}
+.r1{left:2%;top:4%;width:25%;height:25%}.r2{left:37%;top:4%;width:26%;height:22%}.r3{left:70%;top:4%;width:28%;height:25%}.r4{left:2%;top:37%;width:25%;height:24%}.r5{left:73%;top:37%;width:25%;height:24%}.r6{left:2%;top:68%;width:25%;height:27%}.r7{left:37%;top:72%;width:12%;height:23%}.r8{left:51%;top:72%;width:12%;height:23%}.r9{left:70%;top:68%;width:28%;height:20%}.r10{left:37%;top:68%;width:26%;height:20%}.atrium{position:absolute;left:37%;top:31%;width:26%;height:35%;border:2px solid #d1b56f;border-radius:50%;background:radial-gradient(circle,#756448,#211e19 62%);display:flex;align-items:center;justify-content:center;text-align:center;font-weight:bold}.garden{position:absolute;left:29%;top:31%;width:8%;height:35%;background:#304d35;border:1px solid #7b9c72;display:flex;align-items:center;justify-content:center;text-align:center;font:11px Arial}
+#joystick{display:none;position:fixed;z-index:12;left:20px;bottom:88px;width:130px;height:130px;border-radius:50%;background:#ffffff12;border:1px solid #ffffff25;touch-action:none}#stick{position:absolute;left:38px;top:38px;width:54px;height:54px;border-radius:50%;background:#ffffff42;border:1px solid #ffffff55}#look{display:none;position:fixed;z-index:11;right:0;top:0;width:58%;height:78%;touch-action:none}
+#audio{display:none}
+@media(pointer:coarse){#joystick,#look{display:block}.hint{font-size:10px}#hud{bottom:8px}.title{font-size:14px}}
+</style>
+</head>
+<body>
+<div id="top"><button id="mapBtn">Mapa</button><button id="help">Como navegar</button><button id="full">Ecrã inteiro</button></div>
+<div id="hud"><div class="title">Museu Virtual dos Livros – Prazeres Interrompidos</div><div class="hint">Computador: W A S D / setas + rato · Telemóvel: joystick + arrastar o lado direito · Clique numa capa para a abrir</div></div>
+<div id="info"><button id="close" style="float:right">×</button><img id="cover" alt="Capa do livro"><div class="code" id="code">E001</div><h2 id="workTitle">Obra em exposição</h2><div class="small" id="room"></div><br><button id="play" class="play">▶ Ouvir episódio</button><div class="small" id="audioState" style="margin-top:8px"></div></div>
+<div id="status"><div class="statusText" id="statusText">A preparar o museu…</div></div>
+<div id="map"><button id="mapClose" style="float:right">Fechar</button><h2>Planta do Museu</h2><div class="plan"><div class="room r1" data-room="Galeria I">Galeria I<br>1–100</div><div class="room r2" data-room="Galeria II">Galeria II<br>101–200</div><div class="room r3" data-room="Galeria III">Galeria III<br>201–300</div><div class="room r4" data-room="Galeria dos Autores">Galeria dos Autores</div><div class="room r5" data-room="Galeria Internacional">Galeria Internacional</div><div class="room r6" data-room="Livros Imaginários">Livros Imaginários<br>Jovens Leitores</div><div class="room r7" data-room="Galeria IV">Galeria IV<br>301–400</div><div class="room r8" data-room="Galeria V">Galeria V<br>401–500</div><div class="room r9" data-room="Galeria VI">Galeria VI<br>501–600</div><div class="room r10" data-room="Galeria Temática">Galeria Temática<br>Exposições Temporárias</div><div class="garden">Jardim da Leitura</div><div class="atrium">ÁTRIO<br>DOS LIVROS</div></div></div>
+<div id="joystick"><div id="stick"></div></div><div id="look"></div><audio id="audio" preload="none"></audio>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+
+/* ================================================================
+   CONFIGURAÇÃO
+   Os MP3 podem ser colocados numa pasta com o nome indicado abaixo.
+   O sistema procura automaticamente o primeiro ficheiro cujo nome
+   começa por E001, E002, ... E544, independentemente do resto do nome.
+   ================================================================ */
+const AUDIO_REPO='prazeres-interrompidos/museu-3d-prazeres-interrompidos';
+const AUDIO_FOLDER='EPISÓDIOS PARA O MUSEU';
+const COVER_FOLDER='CAPAS';
+const audio=document.getElementById('audio');
+const audioCache=new Map();let currentCode=null,currentAudioUrl=null;
+
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x101216);scene.fog=new THREE.Fog(0x101216,45,125);
+const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,300);camera.position.set(0,2.1,27);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;document.body.prepend(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xfff1d6,0x252b31,2.1));const sun=new THREE.DirectionalLight(0xffe7b8,2.1);sun.position.set(0,18,12);scene.add(sun);
+const wallMat=new THREE.MeshStandardMaterial({color:0xd7d0c4,roughness:.85});const gold=new THREE.MeshStandardMaterial({color:0x9e8150,metalness:.35,roughness:.45});
+const floorMat=new THREE.MeshStandardMaterial({color:0x77736c,roughness:.8});const floor=new THREE.Mesh(new THREE.BoxGeometry(92,.5,100),floorMat);floor.position.y=-.25;scene.add(floor);
+function box(x,y,z,w,h,d,m=wallMat){const q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);q.position.set(x,y,z);scene.add(q);return q}
+function wall(x,z,w,d){return box(x,3,z,w,6,d)}
+wall(0,-36,92,1);wall(0,65,92,1);wall(-46,14.5,1,101);wall(46,14.5,1,101);
+
+// Salas — cada uma tem uma abertura real para o corredor/átrio.
+const rooms=[
+ ['Galeria I · Episódios 1–100',-30,-22,26,22,1,100,0x294037,'I'],
+ ['Galeria II · Episódios 101–200',0,-24,27,18,101,200,0x51332b,'II'],
+ ['Galeria III · Episódios 201–300',30,-22,26,22,201,300,0x2e3b55,'III'],
+ ['Galeria dos Autores',-30,0,25,20,0,0,0x3b3445,'A'],
+ ['Galeria Internacional',30,0,25,20,0,0,0x253d43,'INT'],
+ ['Livros Imaginários / Jovens Leitores',-30,23,26,20,0,0,0x493b27,'LIV'],
+ ['Galeria IV · Episódios 301–400',-15,25,13,18,301,400,0x463e2e,'IV'],
+ ['Galeria V · Episódios 401–500',15,25,13,18,401,500,0x54402d,'V'],
+ ['Galeria VI · Episódios 501–600',30,23,18,20,501,600,0x3f4730,'VI'],
+ ['Galeria Temática / Exposições Temporárias',30,23,0,0,0,0,0x3d3040,'TEMP']
+];
+// A última entrada é representada no espaço da antiga ala direita; evitamos sobreposição duplicada.
+const roomZones=[];
+function label(name,x,z,w,d){const cv=document.createElement('canvas');cv.width=900;cv.height=120;const ct=cv.getContext('2d');ct.fillStyle='#161616';ct.fillRect(0,0,900,120);ct.fillStyle='#ead8a9';ct.font='bold 31px Georgia';ct.textAlign='center';ct.fillText(name,450,72);const tx=new THREE.CanvasTexture(cv);const lab=new THREE.Mesh(new THREE.PlaneGeometry(Math.min(Math.max(w-2,5),18),2.7),new THREE.MeshBasicMaterial({map:tx}));lab.position.set(x,4.2,z-d/2+.27);lab.rotation.y=Math.PI;scene.add(lab)}
+function addRoom(r){const [name,x,z,w,d,a,b,c,id]=r;const innerMat=new THREE.MeshStandardMaterial({color:c,roughness:.9});box(x,.02,z,w,.08,d,innerMat);label(name,x,z,w,d);
+ const opening=Math.min(3.8,Math.min(w,d)*.42),faceX=Math.abs(x)>Math.abs(z);
+ if(faceX){const openEast=x<0,ox=openEast?x+w/2:x-w/2,opposite=openEast?x-w/2:x+w/2,side=(d-opening)/2;wall(opposite,z,.5,d);wall(ox,z-d/2+side/2,.5,side);wall(ox,z+d/2-side/2,.5,side);wall(x,z-d/2,w,.5);wall(x,z+d/2,w,.5)}
+ else{const openSouth=z<0,oz=openSouth?z+d/2:z-d/2,opposite=openSouth?z-d/2:z+d/2,side=(w-opening)/2;wall(x,opposite,w,.5);wall(x-w/2+side/2,oz,side,.5);wall(x+w/2-side/2,oz,side,.5);wall(x-w/2,z,.5,d);wall(x+w/2,z,.5,d)}
+ const zone={name,id,x,z,w,d,a,b};roomZones.push(zone);
+ if(a){for(let n=a;n<=b;n++){const i=n-a,col=i%10;const code='E'+String(n).padStart(3,'0');const cv=document.createElement('canvas');cv.width=140;cv.height=210;const g=cv.getContext('2d');g.fillStyle=['#e5d3ad','#b7c8d7','#d6b0a8','#b7c7a8','#d4c0df'][i%5];g.fillRect(0,0,140,210);g.fillStyle='#171717';g.textAlign='center';g.font='bold 25px Arial';g.fillText(code,70,100);g.font='13px Arial';g.fillText('PRAZERES',70,135);g.fillText('INTERR.',70,157);const t=new THREE.CanvasTexture(cv);const m=new THREE.Mesh(new THREE.PlaneGeometry(1.0,1.5),new THREE.MeshStandardMaterial({map:t}));m.position.set(x-w/2+1.4+col*(w-2.8)/9,2.05,z+d/2-.3);m.rotation.y=Math.PI;m.userData={code,room:name};scene.add(m)}}}
+rooms.forEach(addRoom);
+// Exposição temporária, junto ao Jardim da Leitura.
+const thematic=['Galeria Temática / Exposições Temporárias',-30,51,24,16,0,0,0x3d3040,'TEMP'];
+addRoom(thematic);
+// Exposições sem numeração — portas/zonas acessíveis a partir do átrio.
+
+// Átrio e jardim.
+const atr=new THREE.Mesh(new THREE.CylinderGeometry(10,10,.25,64),gold);atr.position.y=.05;scene.add(atr);for(let i=0;i<20;i++){const a=i/20*Math.PI*2,r=2.5+(i%4)*.5;box(Math.cos(a)*r,.5+i*.05,Math.sin(a)*r,.7,.14,2,gold)}
+const garden=new THREE.Mesh(new THREE.CircleGeometry(13,48),new THREE.MeshStandardMaterial({color:0x2d4c32,roughness:1}));garden.rotation.x=-Math.PI/2;garden.position.set(0,.04,49);scene.add(garden);
+
+// Colisão: o visitante não atravessa paredes; pode circular pelos vãos das portas.
+const collisionBoxes=[];
+function addCollision(x,z,w,d){collisionBoxes.push({x,z,w,d})}
+// limites exteriores
+addCollision(0,-36,92,1);addCollision(0,65,92,1);addCollision(-46,14.5,1,101);addCollision(46,14.5,1,101);
+for(const [name,x,z,w,d] of rooms){const opening=Math.min(3.8,Math.min(w,d)*.42),faceX=Math.abs(x)>Math.abs(z);if(faceX){const openEast=x<0,ox=openEast?x+w/2:x-w/2,opposite=openEast?x-w/2:x+w/2,side=(d-opening)/2;addCollision(opposite,z,.8,d);addCollision(ox,z-d/2+side/2,.8,side);addCollision(ox,z+d/2-side/2,.8,side);addCollision(x,z-d/2,w,.8);addCollision(x,z+d/2,w,.8)}else{const openSouth=z<0,oz=openSouth?z+d/2:z-d/2,opposite=openSouth?z-d/2:z+d/2,side=(w-opening)/2;addCollision(x,opposite,w,.8);addCollision(x-w/2+side/2,oz,side,.8);addCollision(x+w/2-side/2,oz,side,.8);addCollision(x-w/2,z,.8,d);addCollision(x+w/2,z,.8,d)}}
+// Colisão da Galeria Temática (abertura virada para o átrio).
+addCollision(-42,51,.8,16);addCollision(-18,51-5.6,.8,4.8);addCollision(-18,51+5.6,.8,4.8);addCollision(-30,43,24,.8);addCollision(-30,59,24,.8);
+function blocked(nx,nz){const r=.55;for(const b of collisionBoxes){if(nx>b.x-b.w/2-r&&nx<b.x+b.w/2+r&&nz>b.z-b.d/2-r&&nz<b.z+b.d/2+r)return true}return false}
+
+// Movimento desktop/táctil.
+const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase()))e.preventDefault()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+let yaw=0,pitch=0,lock=false;renderer.domElement.addEventListener('click',()=>{if(matchMedia('(pointer:fine)').matches)renderer.domElement.requestPointerLock?.()});document.addEventListener('pointerlockchange',()=>lock=document.pointerLockElement===renderer.domElement);document.addEventListener('mousemove',e=>{if(lock){yaw-=e.movementX*.0022;pitch-=e.movementY*.0018;pitch=Math.max(-1.2,Math.min(1.2,pitch))}});
+let joyX=0,joyY=0,drag=false;const js=document.getElementById('joystick'),st=document.getElementById('stick');js.addEventListener('touchstart',e=>{drag=true;e.preventDefault()},{passive:false});js.addEventListener('touchmove',e=>{if(!drag)return;e.preventDefault();const r=js.getBoundingClientRect(),t=e.touches[0];let x=t.clientX-r.left-r.width/2,y=t.clientY-r.top-r.height/2,m=Math.min(48,Math.hypot(x,y)),a=Math.atan2(y,x);joyX=Math.cos(a)*m/48;joyY=Math.sin(a)*m/48;st.style.transform=`translate(${joyX*35}px,${joyY*35}px)`},{passive:false});js.addEventListener('touchend',()=>{drag=false;joyX=joyY=0;st.style.transform=''});
+let tx=0,ty=0,tl=false;const look=document.getElementById('look');look.addEventListener('touchstart',e=>{tl=true;tx=e.touches[0].clientX;ty=e.touches[0].clientY;e.preventDefault()},{passive:false});look.addEventListener('touchmove',e=>{if(!tl)return;e.preventDefault();const t=e.touches[0];yaw-=(t.clientX-tx)*.006;pitch-=(t.clientY-ty)*.005;pitch=Math.max(-1.2,Math.min(1.2,pitch));tx=t.clientX;ty=t.clientY},{passive:false});look.addEventListener('touchend',e=>{const t=e.changedTouches[0];const moved=Math.hypot(t.clientX-tx,t.clientY-ty);tl=false;if(moved<10)selectBook(t.clientX,t.clientY)});
+
+// Selecção de capas por toque/clique. Um clique basta; no telemóvel funciona sem duplo toque.
+const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();function selectBook(clientX,clientY){mouse.x=clientX/innerWidth*2-1;mouse.y=-(clientY/innerHeight*2-1);ray.setFromCamera(mouse,camera);const h=ray.intersectObjects(scene.children).find(v=>v.object.userData?.code);if(h)openBook(h.object.userData.code,h.object.userData.room)}
+renderer.domElement.addEventListener('dblclick',e=>selectBook(e.clientX,e.clientY));
+renderer.domElement.addEventListener('pointerup',e=>{if(matchMedia('(pointer:coarse)').matches&&Math.hypot(e.clientX-(innerWidth*.5),e.clientY-(innerHeight*.5))>80)selectBook(e.clientX,e.clientY)});
+
+function codeNum(code){return Number(String(code).match(/\d+/)?.[0]||0)}
+function coverCandidates(code){return [`${COVER_FOLDER}/${code}.jpg`,`${COVER_FOLDER}/${code}.jpeg`,`${COVER_FOLDER}/${code}.png`,`https://raw.githubusercontent.com/${AUDIO_REPO}/main/${encodeURIComponent(COVER_FOLDER)}/${code}.jpg`]}
+async function setCover(code){const img=document.getElementById('cover');img.src='';for(const u of coverCandidates(code)){try{const ok=await new Promise(res=>{const x=new Image();x.onload=()=>{img.src=x.src;res(true)};x.onerror=()=>res(false);x.src=u});if(ok)return}catch{}}}
+async function findAudio(code){if(audioCache.has(code))return audioCache.get(code);const n=codeNum(code);const prefix='E'+String(n).padStart(3,'0');
+ try{const api=`https://api.github.com/repos/${AUDIO_REPO}/contents/${encodeURIComponent(AUDIO_FOLDER)}`;const r=await fetch(api,{headers:{Accept:'application/vnd.github+json'}});if(r.ok){const files=await r.json();const hit=files.find(f=>f.type==='file'&&new RegExp('^'+prefix+'(?:\\b|[ _-])','i').test(f.name));if(hit){audioCache.set(code,hit.download_url);return hit.download_url}}}catch(e){}
+ const exts=['mp3','MP3'];for(const ext of exts){const u=`https://raw.githubusercontent.com/${AUDIO_REPO}/main/${encodeURIComponent(AUDIO_FOLDER)}/${prefix}.${ext}`;try{const h=await fetch(u,{method:'HEAD'});if(h.ok){audioCache.set(code,u);return u}}catch(e){}}
+ return null}
+async function openBook(code,room){currentCode=code;document.getElementById('code').textContent=code;document.getElementById('room').textContent=room;document.getElementById('workTitle').textContent='Episódio '+code;document.getElementById('audioState').textContent='A procurar o episódio…';document.getElementById('info').style.display='block';await setCover(code);const u=await findAudio(code);if(u){currentAudioUrl=u;document.getElementById('audioState').textContent='Episódio encontrado. Pode iniciar a reprodução.';document.getElementById('play').disabled=false}else{currentAudioUrl=null;document.getElementById('audioState').textContent='Áudio ainda não encontrado nesta versão do museu.';document.getElementById('play').disabled=true}}
+
+document.getElementById('play').onclick=async()=>{if(!currentCode)return;if(audio.paused){if(!currentAudioUrl)currentAudioUrl=await findAudio(currentCode);if(!currentAudioUrl){document.getElementById('audioState').textContent='Não foi possível localizar o MP3 de '+currentCode+'.';return}audio.src=currentAudioUrl;try{await audio.play();document.getElementById('play').textContent='⏸ Pausar episódio';document.getElementById('play').classList.add('playing');document.getElementById('audioState').textContent='A reproduzir '+currentCode+'.'}catch(e){document.getElementById('audioState').textContent='O navegador bloqueou a reprodução automática. Prima novamente Play.'}}else{audio.pause();document.getElementById('play').textContent='▶ Ouvir episódio';document.getElementById('play').classList.remove('playing');document.getElementById('audioState').textContent='Episódio em pausa.'}};
+audio.addEventListener('ended',()=>{document.getElementById('play').textContent='▶ Ouvir episódio';document.getElementById('play').classList.remove('playing');document.getElementById('audioState').textContent='Episódio terminado.'});
+document.getElementById('close').onclick=()=>{document.getElementById('info').style.display='none';audio.pause()};
+
+// Mapa: teletransporta para a entrada de cada espaço sem alterar a navegação livre.
+const roomCenters={'Galeria I':[-30,-10],'Galeria II':[0,-14],'Galeria III':[30,-10],'Galeria dos Autores':[-30,8],'Galeria Internacional':[30,8],'Livros Imaginários':[-30,31],'Galeria IV':[-15,35],'Galeria V':[15,35],'Galeria VI':[30,33],'Galeria Temática':[-30,51]};
+for(const el of document.querySelectorAll('.room[data-room]'))el.addEventListener('click',()=>{const p=roomCenters[el.dataset.room];if(p){camera.position.set(p[0],2.1,p[1]);document.getElementById('map').style.display='none'}});
+document.getElementById('mapBtn').onclick=()=>document.getElementById('map').style.display='block';document.getElementById('mapClose').onclick=()=>document.getElementById('map').style.display='none';
+document.getElementById('help').onclick=()=>alert('Computador: W/A/S/D ou setas; clique no espaço para activar o rato. Telemóvel: joystick à esquerda para caminhar e arraste o lado direito para olhar. Clique numa capa para abrir a ficha e, depois, prima Ouvir episódio.');document.getElementById('full').onclick=()=>document.documentElement.requestFullscreen?.();
+
+const clock=new THREE.Clock();function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.05),f=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)),r=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));let x=0,z=0;if(keys.w||keys.arrowup)z++;if(keys.s||keys.arrowdown)z--;if(keys.a||keys.arrowleft)x--;if(keys.d||keys.arrowright)x++;x+=joyX;z+=joyY;const v=new THREE.Vector3().addScaledVector(f,z).addScaledVector(r,x);if(v.lengthSq()){v.normalize();const speed=dt*6.5,nx=camera.position.x+v.x*speed,nz=camera.position.z+v.z*speed;if(!blocked(nx,camera.position.z))camera.position.x=nx;if(!blocked(camera.position.x,nz))camera.position.z=nz}camera.position.x=THREE.MathUtils.clamp(camera.position.x,-43,43);camera.position.z=THREE.MathUtils.clamp(camera.position.z,-34,63);camera.position.y=2.1;camera.rotation.set(pitch,yaw,0,'YXZ');renderer.render(scene,camera)}loop();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+</script>
+</body></html>
